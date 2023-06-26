@@ -14,12 +14,16 @@ router.get("/", async (req, res) => {
     const totalPages = Math.ceil(totalStation / limit);
     const paginatedStations = stations.slice(startIndex, endIndex);
 
-    res.status(200).json({
-      stations: paginatedStations,
-      currentPage: Number(page),
-      totalPages,
-      totalStation,
-    });
+    if (stations) {
+      res.status(200).json({
+        stations: paginatedStations,
+        currentPage: Number(page),
+        totalPages,
+        totalStation,
+      });
+    } else {
+      throw "Internal server error";
+    }
   } catch (error) {
     res.status(500).json({ error });
   }

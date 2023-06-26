@@ -4,35 +4,15 @@ const User = require("../models/user-model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const reqAuthorization = require("../middleware/reqAuthorization");
-
-const handleError = (error) => {
-  let err = {};
-  if (error.name === "ValidationError") {
-    if (error.errors.email) {
-      err["email"] = error.errors.email.message;
-    }
-
-    if (error.errors.name) {
-      err["name"] = error.errors.name.message;
-    }
-
-    if (error.errors.password) {
-      err["password"] = error.errors.password.message;
-    }
-    return err;
-  }
-
-  if (error.code === 11000) {
-    if (error.keyValue.email)
-      err["email"] = "Account with this email already exist";
-    return err;
-  }
-  return error;
-};
+const crypto = require("crypto");
+const VerificationToken = require("../models/verificationToken-model");
+const handleSignUpErrors = require("../utils/handleSignUpErrors");
+const sendEmail = require("../utils/sendEmail");
 
 //sign-up end point
 router.post("/sign-up", async (req, res) => {
   const { name, email, password } = req.body;
+  const verifyToken = crypto.randomBytes(32).toString("hex");
 
   try {
     const newUser = new User({
@@ -44,11 +24,22 @@ router.post("/sign-up", async (req, res) => {
     const user = await newUser.save();
     if (user) {
       res.status(201).json({ message: "Account Created" });
+
+      const token = new VerificationToken({
+        userId: user._id,
+        token: verifyToken,
+      });
+      const savedToken = await token.save();
+      if (savedToken) {
+        sendEmail(user.email, verifyToken);
+      } else {
+        throw "Verify token not saved";
+      }
     } else {
-      res.status(500).json({ error: "Internal server error" });
+      throw "Account Sign-up failed";
     }
   } catch (err) {
-    const error = handleError(err);
+    const error = handleSignUpErrors(err);
     res.status(400).json({ error });
   }
 });
@@ -64,10 +55,25 @@ router.post("/login", async (req, res) => {
     if (user) {
       const result = await bcrypt.compare(password, user.password);
       if (result) {
-        const token = jwt.sign({ id: user._id }, process.env.SECRET, {
-          expiresIn: "3d",
-        });
-        res.status(200).json({ name: user.name, email: user.email, token });
+        if (user.verified) {
+          const token = jwt.sign({ id: user._id }, process.env.SECRET, {
+            expiresIn: "3d",
+          });
+          res.status(200).json({
+            name: user.name,
+            email: user.email,
+            verified: user.verified,
+            token,
+          });
+        } else {
+          res.status(200).json({
+            name: user.name,
+            email: user.email,
+            id: user._id,
+            verified: user.verified,
+            message: "Verify your account",
+          });
+        }
       } else {
         throw "Invalid email or password";
       }

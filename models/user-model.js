@@ -16,12 +16,13 @@ const userSchema = new Schema(
       unique: true,
       validate: [isEmail, "Enter a valid email"],
     },
-
     password: {
       type: String,
       required: [true, "Password required"],
       minLength: [8, "Minimum of 8 characters"],
     },
+    picture: { type: String },
+    verified: { type: Boolean, default: false },
     favorites: [Schema.Types.Mixed],
   },
   { timestamps: true }
