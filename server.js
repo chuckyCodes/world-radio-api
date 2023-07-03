@@ -8,7 +8,7 @@ const authRoute = require("./routes/auth-route");
 const favRoute = require("./routes/favorites-route");
 const stationsRoute = require("./routes/stations-route");
 const googleAuth = require("./routes/google-auth-route");
-const verifyRoute = require("./routes/verifcation-route");
+const verifyRoute = require("./routes/verification-route");
 
 mongoose.connect(process.env.DB_URI).then(() => {
   console.log("connected to database");

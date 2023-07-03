@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/user-model");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const reqAuthorization = require("../middleware/reqAuthorization");
 const crypto = require("crypto");
 const VerificationToken = require("../models/verificationToken-model");
 const handleSignUpErrors = require("../utils/handleSignUpErrors");
 const sendEmail = require("../utils/sendEmail");
+const createToken = require("../utils/createToken");
 
 //sign-up end point
 router.post("/sign-up", async (req, res) => {
@@ -56,9 +56,7 @@ router.post("/login", async (req, res) => {
       const result = await bcrypt.compare(password, user.password);
       if (result) {
         if (user.verified) {
-          const token = jwt.sign({ id: user._id }, process.env.SECRET, {
-            expiresIn: "3d",
-          });
+          const token = createToken(user._id);
           res.status(200).json({
             name: user.name,
             email: user.email,

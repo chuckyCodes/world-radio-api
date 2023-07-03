@@ -4,6 +4,7 @@ const User = require("../models/user-model");
 const VerificationToken = require("../models/verificationToken-model");
 const crypto = require("crypto");
 const sendEmail = require("../utils/sendEmail");
+const jwt = require("jsonwebtoken");
 
 //verification route
 router.get("/verify/:token", async (req, res) => {
@@ -19,14 +20,21 @@ router.get("/verify/:token", async (req, res) => {
       );
       if (!user) throw "user not found";
       if (user.verified) {
-        res
-          .status(200)
-          .json({ verified: user.verified, message: "Email verified" });
+        const token = jwt.sign({ id: user._id }, process.env.SECRET, {
+          expiresIn: "3d",
+        });
+        res.status(200).json({
+          name: user.name,
+          email: user.email,
+          token,
+          verified: user.verified,
+          message: "Your Account has been Verified",
+        });
       } else {
-        throw "Email not verified";
+        throw "Account not verified";
       }
     } else {
-      throw "Invalid or Expired link";
+      throw "Invalid or Expired Verification Link";
     }
   } catch (error) {
     res.status(400).json({ error });

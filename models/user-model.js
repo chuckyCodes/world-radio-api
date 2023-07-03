@@ -13,7 +13,6 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Email is required"],
       lowercase: true,
-      unique: true,
       validate: [isEmail, "Enter a valid email"],
     },
     password: {
@@ -21,7 +20,7 @@ const userSchema = new Schema(
       required: [true, "Password required"],
       minLength: [8, "Minimum of 8 characters"],
     },
-    picture: { type: String },
+    picture: { type: String, default: "" },
     verified: { type: Boolean, default: false },
     favorites: [Schema.Types.Mixed],
   },
