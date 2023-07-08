@@ -21,6 +21,18 @@ const getGoogleUser = async (access_token) => {
   }
 };
 
+const getData = (user, token) => {
+  let data = {};
+
+  data["name"] = user.name;
+  data["email"] = user.email;
+  data["picture"] = user.picture;
+  data["verified"] = user.verified;
+  data["token"] = token;
+
+  return data;
+};
+
 //get authorize url end-point
 router.get("/url", (req, res) => {
   const authorizeUrl = oAuth2Client.generateAuthUrl({
@@ -43,14 +55,11 @@ router.get("/", async (req, res) => {
 
     const verifiedUser = users && users.filter((user) => user.verified)[0];
 
-    let data = {};
+    let data;
 
     if (verifiedUser) {
       const token = createToken(verifiedUser._id);
-      data["name"] = verifiedUser.name;
-      data["email"] = verifiedUser.email;
-      data["verified"] = verifiedUser.verified;
-      data["token"] = token;
+      data = getData(verifiedUser, token);
     }
     if (!users || !verifiedUser) {
       const newUser = await User.create({
@@ -64,11 +73,7 @@ router.get("/", async (req, res) => {
       const createdUser = await newUser.save();
       if (createdUser) {
         const token = createToken(createdUser._id);
-
-        data["name"] = createdUser.name;
-        data["email"] = createdUser.email;
-        data["verified"] = createdUser.verified;
-        data["token"] = token;
+        data = getData(createdUser, token);
       }
     }
 
