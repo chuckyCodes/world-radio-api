@@ -21,22 +21,27 @@ router.post("/sign-up", async (req, res) => {
       password,
     });
 
-    const user = await newUser.save();
-    if (user) {
-      res.status(201).json({ message: "Account Created" });
-
-      const token = new VerificationToken({
-        userId: user._id,
-        token: verifyToken,
-      });
-      const savedToken = await token.save();
-      if (savedToken) {
-        sendEmail(user.email, verifyToken);
-      } else {
-        throw "Verify token not saved";
-      }
+    const verifiedUser = await User.findOne({ email, verified: true });
+    if (verifiedUser) {
+      throw "exist";
     } else {
-      throw "Account Sign-up failed";
+      const user = await newUser.save();
+      if (user) {
+        res.status(201).json({ message: "Account Created" });
+
+        const token = new VerificationToken({
+          userId: user._id,
+          token: verifyToken,
+        });
+        const savedToken = await token.save();
+        if (savedToken) {
+          sendEmail(user.email, verifyToken);
+        } else {
+          throw "Verify token not saved";
+        }
+      } else {
+        throw "Account Sign-up failed";
+      }
     }
   } catch (err) {
     const error = handleSignUpErrors(err);

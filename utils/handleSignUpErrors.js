@@ -15,9 +15,8 @@ const handleSignUpErrors = (error) => {
     return err;
   }
 
-  if (error.code === 11000) {
-    if (error.keyValue.email)
-      err["email"] = "Account with this email already exist";
+  if (error === "exist") {
+    err["email"] = "Account with this email already exist";
     return err;
   }
   return error;

@@ -5,7 +5,7 @@ const axios = require("axios");
 const User = require("../models/user-model");
 const createToken = require("../utils/createToken");
 
-const redirectUrl = `${process.env.CYCLIC_URL}/api/v1/oauth/google`;
+const redirectUrl = `${process.env.REDIRECT_BASE_URL}/api/v1/oauth/google`;
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const oAuth2Client = new OAuth2Client(client_id, client_secret, redirectUrl);
