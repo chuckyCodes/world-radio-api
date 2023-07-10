@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 
-const sendMail = async (email, verifyToken) => {
-  const verificationURL = `${process.env.CLIENT_URL}/verify/${verifyToken}`;
+const sendMail = async (email, verifyToken, authenticationToken) => {
+  const verificationURL = `${process.env.CLIENT_URL}/verify/${verifyToken}/${authenticationToken}/`;
   const mailOptions = {
     from: '"world-radio" <chucksn611@hotmail.com>',
     to: email,

@@ -8,17 +8,28 @@ const VerificationToken = require("../models/verificationToken-model");
 const handleSignUpErrors = require("../utils/handleSignUpErrors");
 const sendEmail = require("../utils/sendEmail");
 const createToken = require("../utils/createToken");
+const hashPassword = require("../utils/hashPassword");
+const cryptoJS = require("crypto-js");
 
 //sign-up end point
 router.post("/sign-up", async (req, res) => {
   const { name, email, password } = req.body;
+  const hashedPassword = await hashPassword(password);
+  const payload = { email: email, password: hashedPassword };
+  const stringifiedPayload = JSON.stringify(payload);
   const verifyToken = crypto.randomBytes(32).toString("hex");
+  const encryptedPayload = cryptoJS.AES.encrypt(
+    stringifiedPayload,
+    process.env.SECRET
+  ).toString();
+  const authenticationToken = encodeURIComponent(encryptedPayload);
 
   try {
     const newUser = new User({
       name,
       email,
-      password,
+      password: hashedPassword,
+      authToken: authenticationToken,
     });
 
     const verifiedUser = await User.findOne({ email, verified: true });
@@ -35,7 +46,7 @@ router.post("/sign-up", async (req, res) => {
         });
         const savedToken = await token.save();
         if (savedToken) {
-          sendEmail(user.email, verifyToken);
+          sendEmail(user.email, verifyToken, authenticationToken);
         } else {
           throw "Verify token not saved";
         }
@@ -49,17 +60,29 @@ router.post("/sign-up", async (req, res) => {
   }
 });
 
-//login end point
+//login with Email end point
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
     if (!email) throw { email: "Email required " };
     if (!password) throw { password: "Password required " };
-    const user = await User.findOne({ email: email });
-    if (user) {
-      const result = await bcrypt.compare(password, user.password);
-      if (result) {
+    const users = await User.find({ email: email });
+
+    if (users.length > 0) {
+      const filteredUsers = await Promise.all(
+        users.map(async (user) => {
+          const result = await bcrypt.compare(password, user.password);
+          if (result) {
+            return user;
+          } else {
+            return null;
+          }
+        })
+      );
+      const user = filteredUsers.find((user) => user);
+
+      if (user) {
         if (user.verified) {
           const token = createToken(user._id);
           res.status(200).json({
@@ -74,6 +97,7 @@ router.post("/login", async (req, res) => {
             name: user.name,
             email: user.email,
             id: user._id,
+            auth: user.authToken,
             verified: user.verified,
             message: "Verify your account",
           });

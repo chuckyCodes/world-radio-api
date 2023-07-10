@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const { isEmail } = require("validator");
-const bcrypt = require("bcrypt");
 
 const userSchema = new Schema(
   {
@@ -24,16 +23,8 @@ const userSchema = new Schema(
     verified: { type: Boolean, default: false },
     favorites: [Schema.Types.Mixed],
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 );
-
-userSchema.pre("save", function (next) {
-  const saltRound = 10;
-  bcrypt.hash(this.password, saltRound).then((hash) => {
-    this.password = hash;
-    next();
-  });
-});
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;

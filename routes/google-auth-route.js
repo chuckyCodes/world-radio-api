@@ -4,6 +4,8 @@ const { OAuth2Client } = require("google-auth-library");
 const axios = require("axios");
 const User = require("../models/user-model");
 const createToken = require("../utils/createToken");
+const hashPassword = require("../utils/hashPassword");
+const handleCreateUserErrors = require("../utils/handleSignUpErrors");
 
 const redirectUrl = `${process.env.REDIRECT_BASE_URL}/api/v1/oauth/google`;
 const client_id = process.env.CLIENT_ID;
@@ -53,21 +55,30 @@ router.get("/", async (req, res) => {
     const userInfo = await getGoogleUser(userCredentials.access_token);
     const users = await User.find({ email: userInfo.email });
 
-    const verifiedUser = users && users.filter((user) => user.verified)[0];
+    const verifiedUser = users.find((user) => user.verified);
 
     let data;
 
     if (verifiedUser) {
+      if (!verifiedUser.picture) {
+        verifiedUser.picture = userInfo.picture;
+        verifiedUser.name = userInfo.name;
+        await verifiedUser.save();
+      }
       const token = createToken(verifiedUser._id);
       data = getData(verifiedUser, token);
     }
-    if (!users || !verifiedUser) {
+
+    if (users.length === 0 || !verifiedUser) {
+      const hashedPassword = await hashPassword(
+        process.env.GOOGLE_LOGIN_PASSWORD
+      );
       const newUser = await User.create({
         email: userInfo.email,
         name: userInfo.name,
         picture: userInfo.picture,
         verified: true,
-        password: process.env.GOOGLE_LOGIN_PASSWORD,
+        password: hashedPassword,
       });
 
       const createdUser = await newUser.save();
@@ -80,7 +91,8 @@ router.get("/", async (req, res) => {
     const stringifiedData = JSON.stringify(data);
     const encodedData = Buffer.from(stringifiedData).toString("base64");
     res.redirect(`${process.env.CLIENT_URL}?data=${encodedData}`);
-  } catch (error) {
+  } catch (err) {
+    const error = handleCreateUserErrors(err);
     res.json({ error });
     console.log(error);
   }
