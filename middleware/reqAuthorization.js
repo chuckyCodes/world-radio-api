@@ -1,11 +1,16 @@
 const jwt = require("jsonwebtoken");
+const cryptoJS = require("crypto-js");
 
 const reqAuthorization = (req, res, next) => {
   const { authorization } = req.headers;
   try {
     if (authorization) {
-      const token = authorization.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.SECRET);
+      const encryptedToken = authorization.split(" ")[1];
+      const decryptedToken = cryptoJS.AES.decrypt(
+        encryptedToken,
+        process.env.ENCRYPTION_KEY
+      ).toString(cryptoJS.enc.Utf8);
+      const decoded = jwt.verify(decryptedToken, process.env.SECRET);
       const userId = decoded.id;
       req.userId = userId;
       next();
